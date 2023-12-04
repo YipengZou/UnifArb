@@ -1,24 +1,25 @@
 #%%
-import pandas as pd
-import numpy as np
 import os
 import sys
 from typing import List
 
+import numpy as np
+import pandas as pd
 from scipy.datasets import face
+
 sys.path.append("/home/zouyipeng/Workspace/UnifiedArb")
-from lib.evaluate.Detrendor import detrend_series_isotonic
-import matplotlib.pyplot as plt
-from datetime import datetime
-from tqdm import tqdm
 import warnings
+from datetime import datetime
+
+import matplotlib.pyplot as plt
 import seaborn as sns
-from lib.evaluate.Detrendor import Detrendor
-from lib.evaluate.PolicyGenerator import PolicyGenerator
+from lib.evaluate.Detrendor import Detrendor, detrend_series_isotonic
 from lib.evaluate.Evaluator import ArbitrageEvaluator
+from lib.evaluate.PolicyGenerator import PolicyGenerator
 from PIL import Image
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from tqdm import tqdm
 
 warnings.filterwarnings("ignore", category=UserWarning)
         
