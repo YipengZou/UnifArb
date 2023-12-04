@@ -2,15 +2,19 @@
 
 import os
 import sys
+
 import pandas as pd
 from pandarallel import pandarallel
+
 pandarallel.initialize(progress_bar = True, nb_workers = 20)
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from lib.evaluate.Detrendor import (detrend_series_isotonic,
+                                    detrend_series_linear, detrend_series_ma)
 from lib.evaluate.Evaluator import ArbitrageEvaluator
-from lib.helper.ut import read_factor_return, get_monotonicity_degree
-from lib.evaluate.Detrendor import detrend_series_isotonic, detrend_series_linear, detrend_series_ma
-from RA_Tasks.UnifiedArbitrage.lib.helper.plot_utils import plot_detrend_perform, plot_detrend_compare
+from lib.helper.ut import get_monotonicity_degree, read_factor_return
+from RA_Tasks.UnifiedArbitrage.lib.helper.plot_utils import (
+    plot_detrend_compare, plot_detrend_perform)
 
 __location__ = os.path.realpath(
         os.path.join(os.getcwd(), os.path.dirname(__file__)))

@@ -1,27 +1,27 @@
 #%%
-import pandas as pd
-import numpy as np
 import os
 import sys
 from typing import List
 
+import numpy as np
+import pandas as pd
 from scipy.datasets import face
+
 sys.path.append("/home/zouyipeng/Workspace/UnifiedArb")
-from lib.evaluate.Detrendor import detrend_series_isotonic
-import matplotlib.pyplot as plt
-from datetime import datetime
-from tqdm import tqdm
 import warnings
+from datetime import datetime
+
+import matplotlib.pyplot as plt
 import seaborn as sns
-from lib.evaluate.Detrendor import Detrendor
-from lib.evaluate.PolicyGenerator import PolicyGenerator
+from lib.evaluate.Detrendor import Detrendor, detrend_series_isotonic
 from lib.evaluate.Evaluator import ArbitrageEvaluator
+from lib.evaluate.PolicyGenerator import PolicyGenerator
 from PIL import Image
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from tqdm import tqdm
 
 warnings.filterwarnings("ignore", category=UserWarning)
-        
 
 def plot_res(pg: PolicyGenerator, last_n: int = None): # type: ignore
     df = pg.best_bt.move_df.copy()
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     for col in tqdm(cols, desc = "Evaluating CN..."):
         dt = Detrendor(col, step = 1,
                     data_path = factor_path,
-                    start_date = 20010101,
+                    start_date = 20200101,
                     end_date = 20230101,)
         fig = dt.plot_detrend()
         fig_path = os.path.join(save_folder, f"{col}_detrend.png")
@@ -150,7 +150,9 @@ if __name__ == "__main__":
         table.set_fontsize(20)
         table.scale(2, 2)  # 调整表格大小
         eval_res_path = os.path.join(save_folder, f"{col}_eval_res.png")
-        plt.savefig(eval_res_path, bbox_inches='tight', facecolor = "white")
-        eval_plots.append(eval_res_path)
+    #     plt.savefig(eval_res_path, bbox_inches='tight', facecolor = "white")
+    #     eval_plots.append(eval_res_path)
         
-    save_plots(cols, det_plots, res_plots, res_sample_plots, eval_plots)
+    # save_plots(cols, det_plots, res_plots, res_sample_plots, eval_plots)
+
+# %%

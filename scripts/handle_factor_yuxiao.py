@@ -1,6 +1,7 @@
 #%%
-import pandas as pd
 import os
+
+import pandas as pd
 
 factor_folder = "/home/zouyipeng/Workspace/UnifiedArb/metadata/PERFORMANCE_SUMMARY"
 folders = os.listdir(factor_folder)
