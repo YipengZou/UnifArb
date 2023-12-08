@@ -8,6 +8,7 @@ import seaborn as sns
 from tqdm import tqdm
 
 from ..helper.DataLoader import DataLoader
+from pykalman import KalmanFilter
 
 class Detrendor:
     def __init__(self, col: str, window: int = 120, step: int = 3,
@@ -93,8 +94,12 @@ class Detrendor:
             train_data = data.head(train_size)
             test_data = data.cumsum().tail(self._step)
 
-            model = detrend_series_isotonic(train_data, "model")
-            pred = model.predict(list(range(train_size, len(data))))
+            if self.d_method == "isotonic":
+                model = detrend_series_isotonic(train_data, "model")
+                pred = model.predict(list(range(train_size, len(data))))
+            elif self.d_method == "kf":
+                model, mean, cov = detrend_series_kalman(train_data, "model")
+                pred = model.filter_update(mean, cov, list(range(train_size, len(data))))[0]
             pred = pd.Series(pred, index = test_data.index)
             pred = test_data - pred  # Detrend.
             preds.append(pred)
@@ -109,7 +114,10 @@ class Detrendor:
         """
             Use all data to train, predict the future periods.
         """
-        pred: pd.Series = detrend_series_isotonic(self.data, "detrend") # type: ignore
+        if self.d_method == "isotonic":
+            pred: pd.Series = detrend_series_isotonic(self.data, "detrend") # type: ignore
+        elif self.d_method == "kf":
+            pred: pd.Series = detrend_series_kalman(self.data, "detrend")
         pred.name = f"{self._col}_{self.d_method}_detrend_insample"
 
         return pred
@@ -204,4 +212,30 @@ def detrend_series_isotonic(
         return ir # type: ignore
     else:
         raise ValueError("return_type must be detrend or predict")
-  
+
+
+def detrend_series_kalman(
+        col: pd.Series,   # DO NOT USE CUMSUM
+        return_type: str = "detrend",
+) -> Union[pd.Series, Callable, KalmanFilter]:
+    """
+        col: a series of factor returns
+    """
+    col_use = col[col.first_valid_index() : col.last_valid_index()]
+    x = np.arange(len(col_use))
+    y = col_use.fillna(0).cumsum().values
+    
+    # Define the Kalman Filter
+    kf = KalmanFilter(initial_state_mean=0, n_dim_obs=1)
+    state_means, covs = kf.filter(y)
+    
+    if return_type == "detrend":
+        return pd.Series(y - state_means.flatten(), index=col_use.index, 
+                    name=f"{col.name}_kalman_detrend")
+    elif return_type == "predict":
+        return pd.Series(state_means.flatten(), index=col_use.index, 
+                    name=f"{col.name}_kalman_predict")
+    elif return_type == "model":
+        return kf, state_means[-1], covs[-1] # type: ignore
+    else:
+        raise ValueError("return_type must be detrend, predict, or model")
