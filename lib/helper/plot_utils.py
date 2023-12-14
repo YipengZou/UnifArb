@@ -95,7 +95,7 @@ def plot_pg_res(pg: PolicyGenerator):
                     yaxis_title='y',
                     hovermode='x',
                     legend = dict(x=1, y=1),
-                    width = 800, height = 1500)
+                    width = 2000, height = 1500)
     fig.show()
     return fig
 
