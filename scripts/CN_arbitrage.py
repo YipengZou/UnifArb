@@ -3,12 +3,12 @@ import os
 import sys
 from typing import List
 
+PROJ_DIR = os.path.abspath(__file__).split("/scripts/")[0]
+sys.path.append(PROJ_DIR)
+
 import numpy as np
 import pandas as pd
-from scipy.datasets import face
 
-PROJ_DIR = "/home/zouyipeng/Workspace/UnifiedArb"
-sys.path.append(PROJ_DIR)
 import warnings
 from datetime import datetime
 
@@ -123,6 +123,9 @@ if __name__ == "__main__":
     factor_path = f"{PROJ_DIR}/metadata/CN_daily_return.csv"
     save_folder = f"{PROJ_DIR}/results/plots_kf"
     pdf_path = f"{PROJ_DIR}/results/CN_plot_kf.pdf"
+    if not os.path.exists(f"{PROJ_DIR}/results"):
+        os.mkdir(f"{PROJ_DIR}/results")
+        os.mkdir(save_folder)
     cols = pd.read_csv(factor_path).columns[1:]
     det_plots, res_plots, res_sample_plots, eval_plots = [], [], [], []
     e = ArbitrageEvaluator()
