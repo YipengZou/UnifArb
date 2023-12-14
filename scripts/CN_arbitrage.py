@@ -13,12 +13,10 @@ import warnings
 from datetime import datetime
 
 import matplotlib.pyplot as plt
-import seaborn as sns
-from lib.evaluate.Detrendor import Detrendor, detrend_series_isotonic
+from lib.evaluate.Detrendor import Detrendor
 from lib.evaluate.Evaluator import ArbitrageEvaluator
 from lib.evaluate.PolicyGenerator import PolicyGenerator
 from PIL import Image
-from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from tqdm import tqdm
 
@@ -131,7 +129,7 @@ if __name__ == "__main__":
     e = ArbitrageEvaluator()
     for col in tqdm(cols, desc = "Evaluating CN..."):
         dt = Detrendor(col, step = 1,
-                       d_method = "kf", data_path = factor_path,
+                       d_method = "isotonic", data_path = factor_path,
                        start_date = 20200101,
                        end_date = 20230101,)
         fig = dt.plot_detrend()
