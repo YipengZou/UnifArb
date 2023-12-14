@@ -75,7 +75,7 @@ class PolicyGenerator:
             "pnl_list": bt.pnl_list,
             "stop_loss_date": bt.stop_loss_list,
             "stop_earning_date": bt.stop_earning_list,
-            "winning_rate": round((np.array(bt.pnl_list)>0).mean(), 4)*100,
+            "winning_rate": round((np.array(bt.pnl_list) > 0).mean(), 4)*100,
             "avg_hold_p": round(np.array(bt.hold_p_list).mean(), 2),
             "avg_return": round(np.array(bt.pnl_list).mean(), 4),
         }

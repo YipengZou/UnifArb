@@ -15,13 +15,15 @@ class Detrendor:
                  d_method = "istonic",
                  data_path = "/home/sida/YIPENG/RA_Tasks/UnifiedArbitrage/metadata/PredictorLSretWide.csv",
                  start_date: int = 20000101,
-                 end_date: int = 20240101,) -> None:
+                 end_date: int = 20240101,
+                 data: pd.DataFrame = pd.DataFrame()) -> None:
         self._col = col
         self._window = window
         self._step = step
         self._data_path = data_path
         self._start_date = str(start_date)
         self._end_date = str(end_date)
+        self._data = data
         
         self.d_method = d_method
     
@@ -45,16 +47,20 @@ class Detrendor:
     @property
     def data(self):
         """Original data."""
-        if not hasattr(self, "_data"):
+        if hasattr(self, "_updated"):
+            return self._data
+        
+        if self._data.empty:
             d = DataLoader(path = self._data_path)
             col_data = d.get_full_col(self._col)
             self._data = col_data[
                 col_data.first_valid_index() : col_data.last_valid_index()
             ]
-            s_time = pd.to_datetime(self._start_date).strftime("%Y-%m-%d")
-            e_time = pd.to_datetime(self._end_date).strftime("%Y-%m-%d")
-            self._data = self._data[s_time : e_time]
-
+        s_time = pd.to_datetime(self._start_date).strftime("%Y-%m-%d")
+        e_time = pd.to_datetime(self._end_date).strftime("%Y-%m-%d")
+        self._data = self._data[s_time : e_time]
+        self._updated = True
+        
         return self._data
     
     @property
@@ -212,7 +218,6 @@ def detrend_series_isotonic(
         return ir # type: ignore
     else:
         raise ValueError("return_type must be detrend or predict")
-
 
 def detrend_series_kalman(
         col: pd.Series,   # DO NOT USE CUMSUM
