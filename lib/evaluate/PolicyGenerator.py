@@ -14,8 +14,8 @@ class PolicyGenerator:
         self.dcol = dt.detrend_col
         self._boll_p = 20
         self._best_criteria = np.inf
-        self._best_res = None
-        self._best_bt: BackTestor = None
+        self._best_res = {}
+        self._best_bt: BackTestor
     
     @property
     def df(self) -> pd.DataFrame:
@@ -83,7 +83,7 @@ class PolicyGenerator:
         params.update(res)
         return params
 
-    def grid_search(self, a_range, b_range) -> pd.DataFrame:
+    def grid_search(self, a_range, b_range) -> dict:
         for a in a_range:
             for b in b_range:
                 decison_df = self.get_decision_df(a, b)
