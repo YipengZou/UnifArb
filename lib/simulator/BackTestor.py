@@ -47,7 +47,7 @@ class BackTestor:
     @property
     def position(self) -> int:
         """Current holding number"""
-        return self.
+        return self._position
 
     @property
     def calm(self) -> bool:
@@ -133,7 +133,7 @@ class BackTestor:
 
     def get_date_idx(self, today: str) -> int:
         if today not in self.move_df.index:
-            return None
+            return -1
         
         return self.move_df.index.get_loc(today)
     
@@ -141,13 +141,13 @@ class BackTestor:
         """Get the number of days between day1 and day2. day1: str, day2: str"""
         idx1 = self.get_date_idx(day1)
         idx2 = self.get_date_idx(day2)
-        if idx1 is None or idx2 is None:
-            return None
+        if idx1 == -1 or idx2 == -1:
+            return 0
         return np.abs(idx2 - idx1)
 
     def run(self):
         for t_date, row in self.move_df.iterrows():
-            self._today = t_date
+            self._today = str(t_date)
             if self.calm:  # During calm down period, donot make any decision.
                 continue
             else:
