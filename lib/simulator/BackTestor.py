@@ -4,16 +4,25 @@ import numpy as np
 class BackTestor:
     def __init__(self, move_df: pd.DataFrame, 
                  ret_col: str, empty_last: bool = False,
+                 data_mode: str = "absolute", # absolute ($) | relative (%)
                  max_earning: float = 0.1) -> None:
+        """
+            data_mode: str
+                absolute: data is the price of commodity
+                relative: data is the return of commodity
+        """
         self.move_df = move_df
         self.ret_col = ret_col  # factor cum return column
         self._today: str = move_df.index[0]
+        self._data_mode = data_mode
 
         self._min_hold_p = 10  # min holding period
         self._calm_p = 10  # After stop loss, do not open position for _calm_p days.
         self._max_holding = 1  # Number of holdings
         self._empty_last = empty_last  # Clear position in the last date.
         self._max_earning = max_earning  # Percentage of earning. Exceed -> sell.
+        if data_mode == "absolute":
+            self._max_earning *= 100  # //TODO
 
         self._current_pnl = 0
         self.buy_time_list, self.sell_time_list = [], []
@@ -37,7 +46,10 @@ class BackTestor:
         assert self.b_date < self.s_date, "Sell time should be later than buy time"
         series = self.move_df[self.b_date : self.s_date][self.ret_col]
         
-        return series.iloc[-1] - series.iloc[0]
+        if self._data_mode == "absolute":  # 价格为负的时候怎么计算盈亏比例
+            return series.iloc[-1] - series.iloc[0]
+        elif self._data_mode == "relative":
+            return series.iloc[-1] - series.iloc[0]
     
     @property
     def hold_p(self) -> int:
@@ -129,7 +141,10 @@ class BackTestor:
         self._hold_p += 1
 
         hold_series = self.move_df[self.b_date : self._today][self.ret_col]
-        self._hold_ret = hold_series.iloc[-1] - hold_series.iloc[0]
+        if self._data_mode == "relative": 
+            self._hold_ret = hold_series.iloc[-1] - hold_series.iloc[0]
+        elif self._data_mode == "absolute": # 价格为负的时候怎么计算盈亏比例
+            self._hold_ret = hold_series.iloc[-1] - hold_series.iloc[0]
 
     def get_date_idx(self, today: str) -> int:
         if today not in self.move_df.index:
