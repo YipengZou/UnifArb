@@ -2,28 +2,26 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.isotonic import IsotonicRegression
-from typing import Union, Callable
+from typing import Union, Callable, Tuple
 import matplotlib.pyplot as plt
 import seaborn as sns
-from tqdm import tqdm
 
 from ..helper.DataLoader import DataLoader
 from pykalman import KalmanFilter
-
 class Detrendor:
     def __init__(self, col: str, window: int = 120, step: int = 3,
                  d_method = "istonic",
-                 data_path = "/home/sida/YIPENG/RA_Tasks/UnifiedArbitrage/metadata/PredictorLSretWide.csv",
+                 data_path = "metadata/PredictorLSretWide.csv",
                  start_date: int = 20000101,
                  end_date: int = 20240101,
-                 data: pd.DataFrame = pd.DataFrame()) -> None:
+                 data: pd.Series = pd.Series()) -> None:
         self._col = col
         self._window = window
         self._step = step
         self._data_path = data_path
         self._start_date = str(start_date)
         self._end_date = str(end_date)
-        self._data = data
+        self._data: pd.Series = data.copy()
         
         self.d_method = d_method
     
@@ -45,7 +43,7 @@ class Detrendor:
         return self._preds # type: ignore
     
     @property
-    def data(self):
+    def data(self) -> pd.Series:
         """Original data."""
         if hasattr(self, "_updated"):
             return self._data
@@ -83,7 +81,9 @@ class Detrendor:
     
     @property
     def result(self) -> pd.DataFrame:
-        df: pd.DataFrame = pd.concat([self.preds, self.data.cumsum()], axis = 1).sort_index()
+        df: pd.DataFrame = pd.merge(self.preds, self.data, 
+                                    left_index = True, right_index = True,
+                                    how = "left").sort_index()
         df = df.loc[df.first_valid_index() : df.last_valid_index()]
         df.columns = [self.detrend_col, self.col]
 
@@ -98,19 +98,27 @@ class Detrendor:
             data: pd.Series
             train_size = len(data) - self._step
             train_data = data.head(train_size)
-            test_data = data.cumsum().tail(self._step)
 
             if self.d_method == "isotonic":
+                test_data = data.cumsum().tail(self._step)
                 model = detrend_series_isotonic(train_data, "model")
                 pred = model.predict(list(range(train_size, len(data))))
-            elif self.d_method == "kf":
-                model, mean, cov = detrend_series_kalman(train_data, "model")
-                pred = model.filter_update(mean, cov, list(range(train_size, len(data))))[0]
-            pred = pd.Series(pred, index = test_data.index)
-            pred = test_data - pred  # Detrend.
-            preds.append(pred)
+                pred = pd.Series(pred, index = test_data.index)
+                pred = test_data - pred  # Detrend.
+                preds.append(pred)
 
-        self._preds = pd.concat(preds)
+            elif self.d_method == "kf":
+                res = []
+                test_data = data.tail(self._step)
+                state, model = detrend_series_kalman(train_data, "model")
+                for _d in test_data:
+                    state, _ = model.filter_update(state, _d)
+                    pred = _d - state[-1]
+                    res.append(pred)
+                res = pd.Series(res, index = test_data.index)
+                preds.append(res)
+
+        self._preds: pd.Series = pd.concat(preds)
         self.detrend_col = f"{self._col}_{self.d_method}_detrend_p"
         self._preds.name = self.detrend_col
 
@@ -121,9 +129,11 @@ class Detrendor:
             Use all data to train, predict the future periods.
         """
         if self.d_method == "isotonic":
-            pred: pd.Series = detrend_series_isotonic(self.data, "detrend") # type: ignore
+            pred: pd.Series = detrend_series_isotonic(self.data, "detrend")
         elif self.d_method == "kf":
             pred: pd.Series = detrend_series_kalman(self.data, "detrend")
+        else:
+            pred = pd.Series()
         pred.name = f"{self._col}_{self.d_method}_detrend_insample"
 
         return pred
@@ -219,28 +229,15 @@ def detrend_series_isotonic(
     else:
         raise ValueError("return_type must be detrend or predict")
 
-def detrend_series_kalman(
-        col: pd.Series,   # DO NOT USE CUMSUM
-        return_type: str = "detrend",
-) -> Union[pd.Series, Callable, KalmanFilter]:
-    """
-        col: a series of factor returns
-    """
-    col_use = col[col.first_valid_index() : col.last_valid_index()]
-    x = np.arange(len(col_use))
-    y = col_use.fillna(0).cumsum().values
-    
-    # Define the Kalman Filter
+def detrend_series_kalman(col: pd.Series, return_type: str = "detrend") \
+    -> Union[pd.Series, Tuple[float, KalmanFilter]]:
     kf = KalmanFilter(initial_state_mean=0, n_dim_obs=1)
-    state_means, covs = kf.filter(y)
-    
+    filtered_state_means, _ = kf.filter(col.values)
+    filtered_data = pd.Series(filtered_state_means.flatten(), index=col.index)
     if return_type == "detrend":
-        return pd.Series(y - state_means.flatten(), index=col_use.index, 
-                    name=f"{col.name}_kalman_detrend")
-    elif return_type == "predict":
-        return pd.Series(state_means.flatten(), index=col_use.index, 
-                    name=f"{col.name}_kalman_predict")
+        return col - filtered_data
     elif return_type == "model":
-        return kf, state_means[-1], covs[-1] # type: ignore
+        return filtered_state_means[-1], kf
     else:
-        raise ValueError("return_type must be detrend, predict, or model")
+        raise ValueError("Invalid return_type. Must be one of 'detrend', 'predict', or 'model'.")
+    
