@@ -44,7 +44,8 @@ class PolicyGenerator:
         
         return df
 
-    def get_decision_df(self, a: float, b: float = 0, stop_loss: float = 3, **kwargs,
+    def get_decision_df(self, a: int, b: int = 0, c: float = 1,
+                        stop_loss: float = 3, **kwargs,
                         ) -> pd.DataFrame:
         df = self.df.copy()
         df["det_mean"] = df[self.dcol].\
@@ -52,8 +53,10 @@ class PolicyGenerator:
         df["det_vol"] = df[self.dcol].\
             rolling(window = self._window, min_periods = 3, closed = "left").std()
 
-        df["u_bound"] = a * df["det_mean"] + b * df["det_vol"]
-        df["l_bound"] = a * df["det_mean"] - b * df["det_vol"]
+        # df["u_bound"] = a * df["det_mean"] + b * df["det_vol"]
+        # df["l_bound"] = a * df["det_mean"] - b * df["det_vol"]
+        df["u_bound"] = a + c * df["det_vol"]
+        df["l_bound"] = b - c * df["det_vol"]
         df["status"] = np.where(df[self.dcol] < df["l_bound"], 1,
                           np.where(df[self.dcol] > df["u_bound"], -1, 0))
         df["change"] = df["status"]
@@ -103,9 +106,11 @@ class PolicyGenerator:
     
     def bayes_objective(self, trial: Trial):
         param_space = {
-            "a": trial.suggest_float("a", -2, 2),
-            "b": trial.suggest_float("b", 1, 4),
-            "stop_loss": trial.suggest_float("stop_loss", 2.5, 6),
+            "a": trial.suggest_int("a", 3, 15),
+            "b": trial.suggest_int("b", -15, -3),
+            "c": trial.suggest_float("c", 0.5, 2),
+            "d": trial.suggest_float("d", 0.5, 2),
+            "stop_loss": trial.suggest_float("stop_loss", 4, 6),
             "max_earning": trial.suggest_categorical("max_earning", list(np.arange(0.03, 0.20, 0.01))),
         }
         decison_df = self.get_decision_df(**param_space)
@@ -113,8 +118,7 @@ class PolicyGenerator:
                         max_earning = param_space["max_earning"])
         bt.run()
         bt_res = self.eval_bt_result(bt, param_space)
-        criteria = bt_res["ann_return"] \
-            * np.log(len(bt_res["b_date"])/100 + 1)  # Maximize the return and the number of trades
+        criteria = bt_res["avg_return"] * len(bt_res["pnl_list"])
 
         if criteria < self._best_criteria:
             self._best_criteria = criteria
