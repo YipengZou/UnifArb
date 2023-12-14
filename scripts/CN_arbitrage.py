@@ -24,9 +24,9 @@ from tqdm import tqdm
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-def plot_res(pg: PolicyGenerator, last_n: int = None): 
+def plot_res(pg: PolicyGenerator, last_n: int = -1): 
     df = pg.best_bt.move_df.copy()
-    if last_n is not None:
+    if last_n > 0:
         df = df.iloc[-last_n:]
 
     df.index = df.index.map(lambda x: datetime.strptime(x, "%Y-%m-%d"))
