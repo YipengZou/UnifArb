@@ -10,11 +10,12 @@ class ArbitrageEvaluator:
     def get_excess_kurt(self, col: pd.Series) -> float:
         """Give a series of factor returns, return kurtosis - 3"""
         col_use = col[col.first_valid_index():].fillna(0)
-        return col_use.kurt() - 3 # type: ignore
+        return ((col_use - col_use.mean())**4).mean() \
+            / ((col_use - col_use.mean())**2).mean()**2 - 3
 
     def get_noise_to_signal_ratio(self, resid: pd.Series, y_true: pd.Series) -> float:
         """Calculate Var(epsilon) / Var(y)"""
-        return np.var(resid) / np.var(y_true) # type: ignore
+        return np.var(resid) / np.var(y_true)
 
     def get_reverting_speed(self, rho: float) -> float:
         """Given the AR(1) coefficient, calculate the reverting speed"""
@@ -23,7 +24,7 @@ class ArbitrageEvaluator:
     def get_y_std(self, col: pd.Series) -> float:
         """Given a series of factor returns, return the std"""
         col_use = col[col.first_valid_index():].fillna(0)
-        return np.std(col_use) # type: ignore
+        return np.std(col_use)
 
     def fit_ts_model(
             self, col: pd.Series, lag: int = 1
@@ -39,7 +40,7 @@ class ArbitrageEvaluator:
         bic_list, root_list, model_list = [], [], []
         max_lag = 24
         for lag in range(1, max_lag):
-            model = AutoReg(col_use, lags = lag).fit() # type: ignore
+            model = AutoReg(col_use, lags = lag).fit()
             bic_list.append(model._results.bic)
             root_list.append(max(abs(model._results.roots)))
             model_list.append(model)
@@ -50,14 +51,14 @@ class ArbitrageEvaluator:
 
         if root >= 1:  # non-stationary model, re-fit it using AR(1)
             lag_use = 1
-            model = AutoReg(col_use, lags = lag_use).fit() # type: ignore
+            model = AutoReg(col_use, lags = lag_use).fit()
             root = np.abs(model.params[1])
         
-        return lag_use, root, model # type: ignore
+        return lag_use, root, model
 
     def eval_arbitrage_award(
             self, col: pd.Series, 
-            kurt_hate: float = 1.0, mrs_factor: float = 1.0,
+            kurt_hate: float = 0.1, mrs_factor: float = 1.0,
     ) -> Tuple[float]:
         lag_use, root, model = self.fit_ts_model(col)
         mrs_value = self.get_reverting_speed(root)
@@ -71,4 +72,4 @@ class ArbitrageEvaluator:
         utility = period_reward - kurt_hate * excess_kurt + mrs_factor * mrs_value
 
         return utility, mrs_value, std_value, nsr_value,\
-            excess_kurt, lag_use, root # type: ignore
+            excess_kurt, lag_use, root
