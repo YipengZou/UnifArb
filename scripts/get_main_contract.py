@@ -27,8 +27,7 @@ def cme_time_trans(df: pd.DataFrame) -> pd.DataFrame:
 def convert_time_local(t: str, tz: str = "Asia/Shanghai") -> pd.Timestamp:
     return pd.to_datetime(t).tz_localize(tz)
 
-def get_cme_main():
-    prev_n = 5
+def get_cme_main(prev_n = 5):
     trans_date = {
         "1GC0222.csv": (get_nth_day(2022, 1, 1), get_nth_day(2022, 2, prev_n, from_end = True)),
         "1GC0422.csv": (get_nth_day(2022, 2, prev_n, from_end = True), get_nth_day(2022, 4, prev_n, from_end = True)),
@@ -57,28 +56,28 @@ def get_cme_main():
         print(trans_date[file])
         print(f"Finish {file}")
         
-    pd.concat(cme_record).reset_index(drop = True)\
-        .sort_values(by = "Date-Time")\
-            .to_parquet("/home/ubuntu/data/gold/continue_main/cme_main.parquet")
+    cme_record = pd.concat(cme_record).rename(columns = {"Date-Time": "time"})
+    cme_record.reset_index(drop = True)\
+        .sort_values(by = "time")\
+            .to_parquet("/home/ubuntu/data/gold/continue_main/cme_main_prev15.parquet")
 
 #%%
-def get_shf_main():
+def get_shf_main(prev_n = 5):
     df = pd.read_csv("/home/ubuntu/data/gold/au_future.csv", index_col = 0)
     df["time"] = pd.to_datetime(df['index']).dt.tz_localize("Asia/Shanghai")
-    prev_n = 5
     trans_date = {
-            "AU2202.SHF": (get_nth_day(2022, 1, 1), get_nth_day(2022, 2, prev_n, from_end = True)),
-            "AU2204.SHF": (get_nth_day(2022, 2, prev_n, from_end = True), get_nth_day(2022, 4, prev_n, from_end = True)),
-            "AU2206.SHF": (get_nth_day(2022, 4, prev_n, from_end = True), get_nth_day(2022, 6, prev_n, from_end = True)),
-            "AU2208.SHF": (get_nth_day(2022, 6, prev_n, from_end = True), get_nth_day(2022, 8, prev_n, from_end = True)),
-            "AU2210.SHF": (get_nth_day(2022, 8, prev_n, from_end = True), get_nth_day(2022, 10, prev_n, from_end = True)),
-            "AU2212.SHF": (get_nth_day(2022, 10, prev_n, from_end = True), get_nth_day(2022, 12, prev_n, from_end = True)),
-            "AU2302.SHF": (get_nth_day(2022, 12, prev_n, from_end = True), get_nth_day(2023, 2, prev_n, from_end = True)),
-            "AU2304.SHF": (get_nth_day(2023, 2, prev_n, from_end = True), get_nth_day(2023, 4, prev_n, from_end = True)),
-            "AU2306.SHF": (get_nth_day(2023, 4, prev_n, from_end = True), get_nth_day(2023, 6, prev_n, from_end = True)),
-            "AU2308.SHF": (get_nth_day(2023, 6, prev_n, from_end = True), get_nth_day(2023, 8, prev_n, from_end = True)),
-            "AU2310.SHF": (get_nth_day(2023, 8, prev_n, from_end = True), get_nth_day(2023, 10, prev_n, from_end = True)),
-            "AU2312.SHF": (get_nth_day(2023, 10, prev_n, from_end = True), get_nth_day(2023, 12, prev_n, from_end = True)),
+            "AU2202.SHF": (get_nth_day(2022, 1, 1), get_nth_day(2022, 1, prev_n, from_end = True)),
+            "AU2204.SHF": (get_nth_day(2022, 1, prev_n, from_end = True), get_nth_day(2022, 3, prev_n, from_end = True)),
+            "AU2206.SHF": (get_nth_day(2022, 3, prev_n, from_end = True), get_nth_day(2022, 5, prev_n, from_end = True)),
+            "AU2208.SHF": (get_nth_day(2022, 5, prev_n, from_end = True), get_nth_day(2022, 7, prev_n, from_end = True)),
+            "AU2210.SHF": (get_nth_day(2022, 7, prev_n, from_end = True), get_nth_day(2022, 9, prev_n, from_end = True)),
+            "AU2212.SHF": (get_nth_day(2022, 9, prev_n, from_end = True), get_nth_day(2022, 11, prev_n, from_end = True)),
+            "AU2302.SHF": (get_nth_day(2022, 11, prev_n, from_end = True), get_nth_day(2023, 1, prev_n, from_end = True)),
+            "AU2304.SHF": (get_nth_day(2023, 1, prev_n, from_end = True), get_nth_day(2023, 3, prev_n, from_end = True)),
+            "AU2306.SHF": (get_nth_day(2023, 3, prev_n, from_end = True), get_nth_day(2023, 5, prev_n, from_end = True)),
+            "AU2308.SHF": (get_nth_day(2023, 5, prev_n, from_end = True), get_nth_day(2023, 7, prev_n, from_end = True)),
+            "AU2310.SHF": (get_nth_day(2023, 7, prev_n, from_end = True), get_nth_day(2023, 9, prev_n, from_end = True)),
+            "AU2312.SHF": (get_nth_day(2023, 9, prev_n, from_end = True), get_nth_day(2023, 11, prev_n, from_end = True)),
         }
 
     shf_record = []
@@ -90,12 +89,8 @@ def get_shf_main():
                 convert_time_local(st),
                 convert_time_local(ed),
             )])
-    pd.concat(shf_record).reset_index(drop = True).to_parquet("/home/ubuntu/data/gold/continue_main/shf_main.parquet")
+    pd.concat(shf_record).reset_index(drop = True).to_parquet("/home/ubuntu/data/gold/continue_main/shf_main_prev15.parquet")
 
 # %%
-get_cme_main()
-get_shf_main()
-# %%
-
-
-
+# get_cme_main(prev_n = 15)
+get_shf_main(prev_n = 15)
